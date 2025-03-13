@@ -42,20 +42,44 @@ pip install -r requirements.txt
 Create a `.env` file in the root directory with the following variables:
 ```
 OPENAI_API_KEY=your_openai_api_key
-FIREBASE_PROJECT_ID=your_firebase_project_id
-FIREBASE_PRIVATE_KEY_ID=your_private_key_id
-FIREBASE_PRIVATE_KEY=your_private_key
-FIREBASE_CLIENT_EMAIL=your_client_email
-FIREBASE_CLIENT_ID=your_client_id
-FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
-FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
-FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+CLOUD_RUN_API_URL=https://parentpal-backend-1036039487192.us-central1.run.app
 ```
 
 5. Set up Firebase:
 - Create a Firebase project
 - Generate a service account key
-- Place the service account JSON file in `config/firebase/parentpal-service-account.json`
+- For local development:
+  ```bash
+  # Convert your Firebase service account JSON to base64
+  base64 -i path/to/your/service-account.json > firebase_credentials_base64.txt
+  
+  # Add the base64-encoded credentials to your .env file
+  echo "FIREBASE_CREDENTIALS=$(cat firebase_credentials_base64.txt)" >> .env
+  ```
+- For Cloud Run deployment:
+  ```bash
+  # Create Artifact Registry repository
+  gcloud artifacts repositories create parentpal-repo \
+      --repository-format=docker \
+      --location=us-central1 \
+      --description="ParentPal Docker repository"
+
+  # Configure Docker authentication
+  gcloud auth configure-docker us-central1-docker.pkg.dev
+
+  # Build and push the Docker image
+  docker build --platform linux/amd64 -t us-central1-docker.pkg.dev/parentpalapp-8f10a/parentpal-repo/parentpal-backend .
+  docker push us-central1-docker.pkg.dev/parentpalapp-8f10a/parentpal-repo/parentpal-backend
+
+  # Deploy to Cloud Run
+  gcloud run deploy parentpal-backend \
+    --image us-central1-docker.pkg.dev/parentpalapp-8f10a/parentpal-repo/parentpal-backend \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --memory 512Mi \
+    --set-env-vars "FIREBASE_CREDENTIALS=$(cat config/firebase/parentpal-service-account.json | base64),OPENAI_API_KEY=your_openai_api_key"
+  ```
 
 ## Running Tests
 
@@ -77,8 +101,6 @@ python -m tests.agent_tests
 - `tests/`: Test suites
   - `agent_tests.py`: Agent integration tests
   - `deployed_agent_tests.py`: Production environment tests
-- `config/`: Configuration files (not tracked in git)
-  - `firebase/`: Firebase configuration
 
 ## Future Development
 
@@ -94,6 +116,7 @@ The modular architecture allows for easy addition of new features such as:
 - Never commit sensitive files (`.env`, service account keys, etc.)
 - Keep API keys and credentials secure
 - Use environment variables for sensitive configuration
+- Base64-encode Firebase credentials for deployment
 
 ## Contributing
 

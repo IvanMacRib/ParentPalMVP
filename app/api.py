@@ -12,6 +12,7 @@ from firebase_admin import auth
 from app.agents.main_agent import MainAgent
 from app.agents.workflow_agent import WorkflowAgent
 from app.services.firebase.firebase_service import initialize_firebase
+from app.services.firebase.profile_services import profile_service
 
 # Initialize Firebase
 initialize_firebase()

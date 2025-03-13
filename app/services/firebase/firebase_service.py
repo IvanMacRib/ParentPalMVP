@@ -1,47 +1,31 @@
-# app/services/firebase/firebase_service.py
-
-import firebase_admin
-from firebase_admin import credentials, firestore
 import os
-import json
+import firebase_admin
+from firebase_admin import credentials
 
 _firebase_app = None
 
 def initialize_firebase():
     """
     Initialize Firebase Admin SDK if it hasn't been initialized already.
+    Uses Application Default Credentials.
     """
     global _firebase_app
     
     if _firebase_app is None:
         try:
-            # Use the service account file directly
-            cred_path = "/Users/ivanribeiro/ParentPalMVP/config/firebase/parentpal-service-account.json"
-            print(f"Using credentials file: {cred_path}")
+            # Print environment variable for debugging
+            cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+            print(f"Loading credentials from: {cred_path}")
             
-            if not os.path.exists(cred_path):
-                raise Exception(f"Credentials file not found at: {cred_path}")
-                
-            try:
-                with open(cred_path, 'r') as f:
-                    cred_dict = json.load(f)
-                cred = credentials.Certificate(cred_dict)
-                _firebase_app = firebase_admin.initialize_app(cred)
-                print("Firebase initialized with credentials file")
-            except Exception as file_error:
-                print(f"Error reading credentials file: {file_error}")
-                raise
-        except Exception as init_error:
-            print(f"Failed to initialize Firebase: {init_error}")
-            raise
+            # Initialize Firebase with application default credentials
+            _firebase_app = firebase_admin.initialize_app()
+            
+            # Print app info for debugging
+            print(f"Firebase app name: {_firebase_app.name}")
+            print(f"Firebase project ID: {_firebase_app.project_id}")
+            print("Firebase initialized with application default credentials")
+            
+        except Exception as e:
+            raise Exception(f"Failed to initialize Firebase: {str(e)}")
     
     return _firebase_app
-
-def get_firestore_client():
-    """
-    Get a Firestore client
-    """
-    if _firebase_app is None:
-        initialize_firebase()
-    
-    return firestore.client()
