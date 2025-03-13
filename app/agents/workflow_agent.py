@@ -61,11 +61,12 @@ class WorkflowAgent:
             action = workflow_data.get("action", "view")
             message = workflow_data.get("message", "")
             
-            logger.info(f"Processing workflow request for user: {user_id}")
-            logger.info(f"Action: {action}, Message: {message}")
+            logger.info(f"Workflow Agent processing request for user: {user_id}")
+            logger.info(f"Workflow Action: {action}, Message: '{message}'")
             
             # Get current profile status
             status = await self.get_profile_status(user_id)
+            logger.info(f"Current profile status: exists={status.get('exists', False)}, complete={status.get('is_complete', False)}")
             
             # Handle profile viewing
             if action == "view":
@@ -160,8 +161,8 @@ class WorkflowAgent:
         """Update profile with validated data"""
         try:
             logger.info(f"Updating profile for user: {user_id}")
-            logger.info(f"Action: {action}")
-            logger.info(f"Data: {data}")
+            logger.info(f"Update Action: {action}")
+            logger.info(f"Update Data: {data}")
             
             # Convert data to dictionary if it's a Pydantic model
             data_dict = data.dict() if hasattr(data, 'dict') else data

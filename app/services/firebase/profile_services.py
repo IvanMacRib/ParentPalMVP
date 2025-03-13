@@ -4,6 +4,9 @@ from firebase_admin import firestore
 from .firebase_service import initialize_firebase
 from ...models.profile_models import NameComponents, UserProfile, SpouseProfile, ChildProfile
 import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Initialize Firebase first
 initialize_firebase()

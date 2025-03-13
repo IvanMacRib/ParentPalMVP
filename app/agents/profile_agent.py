@@ -48,7 +48,6 @@ class ProfileAgent:
             temperature=self.config.temperature
         )
         self.chat_history: List[Tuple[str, str]] = []
-        self.logger = logging.getLogger(__name__)
     
     def _get_function_schema(self, action: str) -> dict:
         """Get the function schema for the given action."""
@@ -95,6 +94,16 @@ class ProfileAgent:
             "You are the ParentPal Profile Assistant, helping users provide their profile information "
             "in a natural, conversational way. Extract information only when users clearly provide it. "
             "When extracting information, use the provided function to structure the data in JSON format."
+            "IMPORTANT: Maintain a warm, friendly, and conversational tone throughout. Avoid sounding "
+            "robotic or form-like. Don't ask for information in a rigid sequence - flow naturally with "
+            "the conversation. If a user shares a story or additional context, acknowledge it before "
+            "continuing with profile collection.\n\n"
+            "Examples of good responses:\n"
+            "- \"Thanks for sharing that about your son! I've noted his interest in sports. Do you mind "
+            "sharing his date of birth as well so I can provide age-appropriate advice?\"\n"
+            "- \"I appreciate you telling me about your family! I've updated your profile with your name "
+            "and address. Is there anything else you'd like to share?\"\n\n"
+            "Always prioritize the conversation flow over data collection."
         )
         
         # Add action-specific context
@@ -112,8 +121,9 @@ class ProfileAgent:
     
     async def process(self, message: str, action: str) -> dict:
         """Process a message and extract profile information."""
-        self.logger.info(f"Processing message for action: {action}")
-        self.logger.info(f"User input: {message}")
+        logger.info(f"Profile Agent received message: '{message}'")
+        logger.info(f"Profile Agent action: {action}")
+        logger.info(f"Starting profile processing...")
 
         try:
             # Prepare conversation history
@@ -125,12 +135,20 @@ class ProfileAgent:
             # Get function schema for the action
             function_schema = self._get_function_schema(action)
 
+            # Before the LLM call
+            logger.info(f"Calling LLM with function schema for action: {action}")
+            logger.info(f"System prompt: {self._get_system_prompt(action)}")
+
             # Call LLM with function calling
             response = await self.llm.ainvoke(
                 messages,
                 functions=[function_schema],
                 function_call={"name": "extract_profile_data"}
             )
+
+            # After the LLM call
+            logger.info(f"LLM response received")
+            logger.info(f"Function call exists: {bool(response.additional_kwargs.get('function_call'))}")
 
             # Extract function call arguments
             if not response.additional_kwargs.get('function_call'):
@@ -145,6 +163,10 @@ class ProfileAgent:
 
             # Parse function call arguments
             extracted_data = json.loads(response.additional_kwargs['function_call']['arguments'])
+
+            logger.info(f"Extracted data from LLM: {extracted_data}")
+            logger.info(f"Required fields for {action}: {required_fields[action]}")
+            logger.info(f"Missing fields: {missing_fields}")
             
             # Check if we have all required fields
             required_fields = {
@@ -167,6 +189,7 @@ class ProfileAgent:
             # Validate data based on action
             try:
                 if action == "update_profile":
+                    logger.info("Validating profile data...")
                     name_components = NameComponents(
                         firstName=extracted_data.get('firstName'),
                         lastName=extracted_data.get('lastName')
@@ -184,6 +207,7 @@ class ProfileAgent:
                         'error': None,
                         'details': None
                     }
+                    logger.info("Profile data validation successful")
                 elif action == "add_spouse":
                     name_components = NameComponents(
                         firstName=extracted_data.get('firstName'),
@@ -221,7 +245,7 @@ class ProfileAgent:
                         'details': None
                     }
             except Exception as e:
-                self.logger.error(f"Error processing data: {str(e)}")
+                logger.error(f"Profile data validation failed: {str(e)}")
                 return {
                     'status': 'error',
                     'response': "An unexpected error occurred while processing your request.",
@@ -241,7 +265,7 @@ class ProfileAgent:
                 'details': e.errors()
             }
         except Exception as e:
-            self.logger.error(f"Error processing message: {str(e)}")
+            logger.error(f"Error processing message: {str(e)}")
             return {
                 'status': 'error',
                 'response': "An unexpected error occurred while processing your request.",

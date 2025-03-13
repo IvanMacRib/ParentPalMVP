@@ -5,6 +5,9 @@ from langchain_core.memory import BaseMemory
 from typing import Dict, Any, List, Tuple
 import os
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MainAgent:
     """Main interaction agent that handles general conversation and routes to specific workflows"""

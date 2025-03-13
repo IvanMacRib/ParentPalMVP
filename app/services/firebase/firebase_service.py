@@ -1,6 +1,9 @@
 import os
 import firebase_admin
 from firebase_admin import credentials
+import logging
+
+logger = logging.getLogger(__name__)
 
 _firebase_app = None
 
